@@ -1,0 +1,51 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { client } from '../../lib/sanity';
+
+export async function getStaticPaths() {
+  const projects = await client.fetch(`
+    *[_type == "project"] { slug }
+  `);
+  return projects.map((p: any) => ({ params: { slug: p.slug.current } }));
+}
+
+const { slug } = Astro.params;
+const project = await client.fetch(`
+  *[_type == "project" && slug.current == $slug][0] {
+    _id, title, description, tags, publishedAt
+  }
+`, { slug });
+
+if (!project) return Astro.redirect('/projects');
+---
+<Layout title={project.title}>
+  <nav style="font-size:0.85rem; color:#999; margin-bottom:2rem;">
+    <a href="/" style="color:#4a9eff;">Home</a> ›
+    <a href="/projects" style="color:#4a9eff;">Works</a> ›
+    <span>{project.title}</span>
+  </nav>
+
+  <h1 style="font-size:2rem; font-weight:bold; color:#0a2448; margin-bottom:1rem;">
+    {project.title}
+  </h1>
+
+  {project.tags && (
+    <div style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:1.5rem;">
+      {project.tags.map((t: string) => (
+        <span style="background:#e8f0fe; color:#0a2448; padding:0.3rem 0.8rem; font-size:0.8rem;">{t}</span>
+      ))}
+    </div>
+  )}
+
+  {project.description && (
+    <p style="color:#555; line-height:1.8; font-size:1rem;">{project.description}</p>
+  )}
+
+  {project.publishedAt && (
+    <p style="color:#aaa; font-size:0.8rem; margin-top:2rem;">{project.publishedAt}</p>
+  )}
+
+  <div style="margin-top:3rem;">
+    <a href="/projects" style="color:#4a9eff; font-size:0.9rem;">← Works 一覧に戻る</a>
+  </div>
+</Layout>

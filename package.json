@@ -9,9 +9,21 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "generate-types": "wrangler types"
   },
   "dependencies": {
-    "astro": "^6.4.4"
+    "@astrojs/cloudflare": "^13.6.1",
+    "@sanity/client": "^7.22.1",
+    "@sanity/image-url": "^2.1.1",
+    "astro": "^6.4.4",
+    "styled-components": "^6.4.2",
+    "wrangler": "^4.98.0"
+  },
+  "overrides": {
+    "vite": "^7"
+  },
+  "devDependencies": {
+    "sanity": "^5.30.0"
   }
 }

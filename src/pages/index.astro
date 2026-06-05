@@ -1,17 +1,68 @@
 ---
+import Layout from '../layouts/Layout.astro';
+import { client } from '../lib/sanity';
 
+const projects = await client.fetch(`
+  *[_type == "project"] | order(publishedAt desc)[0...3] {
+    _id, title, slug, description, tags, publishedAt
+  }
+`);
+
+const about = await client.fetch(`
+  *[_type == "about"][0] { name, bio, skills }
+`);
 ---
+<Layout title="Home">
+  <section style="text-align:center; padding: 4rem 0 3rem;">
+    <h1 style="font-size:2.2rem; font-weight:bold; color:#0a2448;">
+      {about?.name ?? 'My Portfolio'}
+    </h1>
+    {about?.bio && (
+      <p style="margin-top:1rem; color:#555; max-width:500px; margin-inline:auto; line-height:1.7;">
+        {about.bio}
+      </p>
+    )}
+    {about?.skills && (
+      <div style="margin-top:1.5rem; display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center;">
+        {about.skills.map((s: string) => (
+          <span style="background:#e8f0fe; color:#0a2448; padding:0.3rem 0.8rem; border-radius:2rem; font-size:0.8rem;">
+            {s}
+          </span>
+        ))}
+      </div>
+    )}
+  </section>
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+  <section>
+    <h2 style="font-size:1.3rem; font-weight:bold; color:#0a2448; border-left:4px solid #4a9eff; padding-left:0.75rem; margin-bottom:1.5rem;">
+      Recent Works
+    </h2>
+    {projects.length === 0 ? (
+      <p style="color:#999;">制作実績はまだありません。</p>
+    ) : (
+      <div style="display:grid; gap:1.5rem;">
+        {projects.map((p: any) => (
+          <a href={`/projects/${p.slug.current}`}
+            style="background:#fff; border:1px solid #e5e7eb; padding:1.5rem; display:block; transition:box-shadow 0.2s;"
+            onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'"
+            onmouseout="this.style.boxShadow='none'">
+            <h3 style="font-size:1.1rem; font-weight:bold; color:#0a2448;">{p.title}</h3>
+            {p.description && (
+              <p style="color:#666; font-size:0.9rem; margin-top:0.5rem; line-height:1.6;">{p.description}</p>
+            )}
+            {p.tags && (
+              <div style="margin-top:0.75rem; display:flex; flex-wrap:wrap; gap:0.4rem;">
+                {p.tags.map((t: string) => (
+                  <span style="background:#f1f5f9; color:#475569; padding:0.2rem 0.6rem; font-size:0.75rem;">{t}</span>
+                ))}
+              </div>
+            )}
+          </a>
+        ))}
+      </div>
+    )}
+    <div style="text-align:right; margin-top:1rem;">
+      <a href="/projects" style="color:#4a9eff; font-size:0.9rem;">すべての実績を見る →</a>
+    </div>
+  </section>
+</Layout>

@@ -1,0 +1,36 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { client } from '../lib/sanity';
+
+const about = await client.fetch(`
+  *[_type == "about"][0] { name, bio, skills }
+`);
+---
+<Layout title="About">
+  <h1 style="font-size:1.8rem; font-weight:bold; color:#0a2448; margin-bottom:2rem;">About</h1>
+
+  {!about ? (
+    <p style="color:#999;">プロフィールはまだ登録されていません。</p>
+  ) : (
+    <div style="background:#fff; border:1px solid #e5e7eb; padding:2rem;">
+      <h2 style="font-size:1.4rem; font-weight:bold; color:#0a2448; margin-bottom:1rem;">
+        {about.name}
+      </h2>
+      {about.bio && (
+        <p style="color:#555; line-height:1.8; white-space:pre-wrap;">{about.bio}</p>
+      )}
+      {about.skills && (
+        <div style="margin-top:1.5rem;">
+          <h3 style="font-size:0.9rem; font-weight:bold; color:#666; margin-bottom:0.75rem;">Skills</h3>
+          <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+            {about.skills.map((s: string) => (
+              <span style="background:#e8f0fe; color:#0a2448; padding:0.3rem 0.8rem; border-radius:2rem; font-size:0.85rem;">
+                {s}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )}
+</Layout>
