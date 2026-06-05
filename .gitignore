@@ -22,3 +22,9 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# Cloudflare / Wrangler ローカルキャッシュ
+.wrangler/
+
+# Sanity ローカルキャッシュ
+.sanity/
