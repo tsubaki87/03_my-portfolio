@@ -14,26 +14,21 @@ Sanity + Astro + Cloudflare Workers で構築したポートフォリオサイ�
 │  Sanity (Headless CMS)                          │
 │  ・コンテンツ管理（制作実績・プロフィール）      │
 │  ・Studio: tsubaki87-portfolio.sanity.studio    │
-└────────────────────┬────────────────────────────┘
-                     │ API (GROQ)
-┌────────────────────▼────────────────────────────┐
-│  Astro (Static Site Generator)                  │
-│  ・output: static                               │
-│  ・TypeScript                                   │
-│  ・@astrojs/cloudflare アダプター               │
-└────────────────────┬────────────────────────────┘
+└────────┬───────────────────────────┬────────────┘
+         │ API (GROQ)                │ Webhook
+         │                           │（コンテンツ更新時に自動発火）
+┌────────▼────────────────┐ ┌────────▼────────────────────────┐
+│  Astro (SSG)            │ │  Cloudflare Workers             │
+│  ・output: static       │ │  ・ホスティング（無料プラン）    │
+│  ・TypeScript           │ │  ・自動ビルド＆デプロイ          │
+│  ・Tailwind CSS v4      │ │  ・URL: my-portfolio.hanada87   │
+│  ・@astrojs/cloudflare  │ │        .workers.dev             │
+└────────────────────┬────┘ └─────────────────────────────────┘
                      │ git push
 ┌────────────────────▼────────────────────────────┐
 │  GitHub (tsubaki87/03_my-portfolio)             │
 │  ・ソースコード管理                              │
-│  ・push で自動デプロイ                           │
-└────────────────────┬────────────────────────────┘
-                     │ 自動ビルド
-┌────────────────────▼────────────────────────────┐
-│  Cloudflare Workers                             │
-│  ・ホスティング（無料プラン）                    │
-│  ・SESSION: KV Namespace                        │
-│  ・URL: my-portfolio.hanada87.workers.dev       │
+│  ・main ブランチ保護（削除・force push 禁止）    │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -56,7 +51,7 @@ Sanity + Astro + Cloudflare Workers で構築したポートフォリオサイ�
 - title / slug / mainImage / description / tags / publishedAt
 
 **about（プロフィール）**
-- name / avatar / bio / skills
+- name / bio / skills
 
 ---
 
@@ -99,6 +94,7 @@ npm run preview  # ビルド結果のプレビュー
 
 ## デプロイ
 
+### コード変更時
 `main` ブランチへの push で Cloudflare Workers に自動デプロイされます。
 
 ```bash
@@ -107,16 +103,27 @@ git commit -m "コミットメッセージ"
 git push origin main
 ```
 
+### コンテンツ更新時
+Sanity Studio でコンテンツを更新・公開するだけで自動デプロイされます（git push 不要）。
+
+```
+Sanity でコンテンツを更新・保存
+        ↓ Webhook が自動発火
+Cloudflare が自動ビルド＆デプロイ（2〜3分）
+        ↓
+本番サイトに反映
+```
+
 ---
 
 ## 今後の予定
 
-- [ ] Tailwind CSS の導入（デザイン改善）
+- [x] Tailwind CSS の導入（デザイン改善）
+- [x] 制作実績にメイン画像表示
+- [x] Sanity Webhook による自動再デプロイ
+- [ ] OGP / SEO メタタグ対応（コンテンツ整備後）
+- [ ] カスタムドメイン設定（新規ドメイン取得時）
 - [ ] 制作実績にリッチテキスト（Portable Text）対応
-- [ ] 制作実績にメイン画像表示
-- [ ] OGP / SEO メタタグ対応
-- [ ] カスタムドメイン設定
-- [ ] Sanity Webhook による自動再デプロイ
 
 ---
 
@@ -126,6 +133,7 @@ git push origin main
 |---------|------|
 | フレームワーク | [Astro](https://astro.build/) v6 |
 | CMS | [Sanity](https://www.sanity.io/) |
+| スタイリング | [Tailwind CSS](https://tailwindcss.com/) v4 |
 | ホスティング | [Cloudflare Workers](https://workers.cloudflare.com/) |
 | 言語 | TypeScript |
 | ソース管理 | GitHub |
