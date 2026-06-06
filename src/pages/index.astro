@@ -1,10 +1,10 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { client } from '../lib/sanity';
+import { client, urlFor } from '../lib/sanity';
 
 const projects = await client.fetch(`
   *[_type == "project"] | order(publishedAt desc)[0...3] {
-    _id, title, slug, description, tags, publishedAt
+    _id, title, slug, description, tags, publishedAt, mainImage
   }
 `);
 
@@ -13,19 +13,19 @@ const about = await client.fetch(`
 `);
 ---
 <Layout title="Home">
-  <section style="text-align:center; padding: 4rem 0 3rem;">
-    <h1 style="font-size:2.2rem; font-weight:bold; color:#0a2448;">
+  <section class="text-center py-16">
+    <h1 class="text-4xl font-bold text-[#0a2448]">
       {about?.name ?? 'My Portfolio'}
     </h1>
     {about?.bio && (
-      <p style="margin-top:1rem; color:#555; max-width:500px; margin-inline:auto; line-height:1.7;">
+      <p class="mt-4 text-gray-500 max-w-md mx-auto leading-relaxed">
         {about.bio}
       </p>
     )}
     {about?.skills && (
-      <div style="margin-top:1.5rem; display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center;">
+      <div class="mt-6 flex flex-wrap gap-2 justify-center">
         {about.skills.map((s: string) => (
-          <span style="background:#e8f0fe; color:#0a2448; padding:0.3rem 0.8rem; border-radius:2rem; font-size:0.8rem;">
+          <span class="bg-blue-50 text-[#0a2448] px-3 py-1 rounded-full text-sm">
             {s}
           </span>
         ))}
@@ -34,35 +34,46 @@ const about = await client.fetch(`
   </section>
 
   <section>
-    <h2 style="font-size:1.3rem; font-weight:bold; color:#0a2448; border-left:4px solid #4a9eff; padding-left:0.75rem; margin-bottom:1.5rem;">
+    <h2 class="text-xl font-bold text-[#0a2448] border-l-4 border-[#4a9eff] pl-3 mb-6">
       Recent Works
     </h2>
     {projects.length === 0 ? (
-      <p style="color:#999;">制作実績はまだありません。</p>
+      <p class="text-gray-400">制作実績はまだありません。</p>
     ) : (
-      <div style="display:grid; gap:1.5rem;">
+      <div class="grid gap-4">
         {projects.map((p: any) => (
           <a href={`/projects/${p.slug.current}`}
-            style="background:#fff; border:1px solid #e5e7eb; padding:1.5rem; display:block; transition:box-shadow 0.2s;"
-            onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'"
-            onmouseout="this.style.boxShadow='none'">
-            <h3 style="font-size:1.1rem; font-weight:bold; color:#0a2448;">{p.title}</h3>
-            {p.description && (
-              <p style="color:#666; font-size:0.9rem; margin-top:0.5rem; line-height:1.6;">{p.description}</p>
-            )}
-            {p.tags && (
-              <div style="margin-top:0.75rem; display:flex; flex-wrap:wrap; gap:0.4rem;">
-                {p.tags.map((t: string) => (
-                  <span style="background:#f1f5f9; color:#475569; padding:0.2rem 0.6rem; font-size:0.75rem;">{t}</span>
-                ))}
+            class="bg-white border border-gray-200 flex rounded hover:shadow-md transition-shadow overflow-hidden">
+            {p.mainImage ? (
+              <img
+                src={urlFor(p.mainImage).width(400).height(300).fit('crop').url()}
+                alt={p.title}
+                class="w-48 shrink-0 object-cover"
+              />
+            ) : (
+              <div class="w-48 shrink-0 bg-gray-100 flex items-center justify-center text-gray-300 text-sm">
+                No Image
               </div>
             )}
+            <div class="p-6 flex flex-col justify-center">
+              <h3 class="text-lg font-bold text-[#0a2448]">{p.title}</h3>
+              {p.description && (
+                <p class="text-gray-500 text-sm mt-2 leading-relaxed">{p.description}</p>
+              )}
+              {p.tags && (
+                <div class="mt-3 flex flex-wrap gap-1">
+                  {p.tags.map((t: string) => (
+                    <span class="bg-gray-100 text-gray-500 px-2 py-0.5 text-xs rounded">{t}</span>
+                  ))}
+                </div>
+              )}
+            </div>
           </a>
         ))}
       </div>
     )}
-    <div style="text-align:right; margin-top:1rem;">
-      <a href="/projects" style="color:#4a9eff; font-size:0.9rem;">すべての実績を見る →</a>
+    <div class="text-right mt-4">
+      <a href="/projects" class="text-[#4a9eff] text-sm hover:underline">すべての実績を見る →</a>
     </div>
   </section>
 </Layout>

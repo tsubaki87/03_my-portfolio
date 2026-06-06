@@ -1,6 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { client } from '../../lib/sanity';
+import { client, urlFor } from '../../lib/sanity';
 
 export async function getStaticPaths() {
   const projects = await client.fetch(`
@@ -12,40 +12,50 @@ export async function getStaticPaths() {
 const { slug } = Astro.params;
 const project = await client.fetch(`
   *[_type == "project" && slug.current == $slug][0] {
-    _id, title, description, tags, publishedAt
+    _id, title, description, tags, publishedAt, mainImage
   }
 `, { slug });
 
 if (!project) return Astro.redirect('/projects');
 ---
 <Layout title={project.title}>
-  <nav style="font-size:0.85rem; color:#999; margin-bottom:2rem;">
-    <a href="/" style="color:#4a9eff;">Home</a> ›
-    <a href="/projects" style="color:#4a9eff;">Works</a> ›
+  <nav class="text-sm text-gray-400 mb-8">
+    <a href="/" class="text-[#4a9eff] hover:underline">Home</a>
+    <span class="mx-2">›</span>
+    <a href="/projects" class="text-[#4a9eff] hover:underline">Works</a>
+    <span class="mx-2">›</span>
     <span>{project.title}</span>
   </nav>
 
-  <h1 style="font-size:2rem; font-weight:bold; color:#0a2448; margin-bottom:1rem;">
+  <h1 class="text-3xl font-bold text-[#0a2448] mb-4">
     {project.title}
   </h1>
 
+  {project.mainImage && (
+    <img
+      src={urlFor(project.mainImage).width(1200).height(600).fit('crop').url()}
+      alt={project.title}
+      class="w-full h-72 object-cover rounded mb-6"
+    />
+  )}
+
   {project.tags && (
-    <div style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:1.5rem;">
+    <div class="flex flex-wrap gap-2 mb-6">
       {project.tags.map((t: string) => (
-        <span style="background:#e8f0fe; color:#0a2448; padding:0.3rem 0.8rem; font-size:0.8rem;">{t}</span>
+        <span class="bg-blue-50 text-[#0a2448] px-3 py-1 text-sm rounded">{t}</span>
       ))}
     </div>
   )}
 
   {project.description && (
-    <p style="color:#555; line-height:1.8; font-size:1rem;">{project.description}</p>
+    <p class="text-gray-500 leading-relaxed">{project.description}</p>
   )}
 
   {project.publishedAt && (
-    <p style="color:#aaa; font-size:0.8rem; margin-top:2rem;">{project.publishedAt}</p>
+    <p class="text-gray-300 text-sm mt-8">{project.publishedAt}</p>
   )}
 
-  <div style="margin-top:3rem;">
-    <a href="/projects" style="color:#4a9eff; font-size:0.9rem;">← Works 一覧に戻る</a>
+  <div class="mt-12">
+    <a href="/projects" class="text-[#4a9eff] text-sm hover:underline">← Works 一覧に戻る</a>
   </div>
 </Layout>

@@ -7,24 +7,24 @@ const about = await client.fetch(`
 `);
 ---
 <Layout title="About">
-  <h1 style="font-size:1.8rem; font-weight:bold; color:#0a2448; margin-bottom:2rem;">About</h1>
+  <h1 class="text-3xl font-bold text-[#0a2448] mb-8">About</h1>
 
   {!about ? (
-    <p style="color:#999;">プロフィールはまだ登録されていません。</p>
+    <p class="text-gray-400">プロフィールはまだ登録されていません。</p>
   ) : (
-    <div style="background:#fff; border:1px solid #e5e7eb; padding:2rem;">
-      <h2 style="font-size:1.4rem; font-weight:bold; color:#0a2448; margin-bottom:1rem;">
+    <div class="bg-white border border-gray-200 p-8 rounded">
+      <h2 class="text-2xl font-bold text-[#0a2448] mb-4">
         {about.name}
       </h2>
       {about.bio && (
-        <p style="color:#555; line-height:1.8; white-space:pre-wrap;">{about.bio}</p>
+        <p class="text-gray-500 leading-relaxed whitespace-pre-wrap">{about.bio}</p>
       )}
       {about.skills && (
-        <div style="margin-top:1.5rem;">
-          <h3 style="font-size:0.9rem; font-weight:bold; color:#666; margin-bottom:0.75rem;">Skills</h3>
-          <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+        <div class="mt-6">
+          <h3 class="text-sm font-bold text-gray-400 mb-3">Skills</h3>
+          <div class="flex flex-wrap gap-2">
             {about.skills.map((s: string) => (
-              <span style="background:#e8f0fe; color:#0a2448; padding:0.3rem 0.8rem; border-radius:2rem; font-size:0.85rem;">
+              <span class="bg-blue-50 text-[#0a2448] px-3 py-1 rounded-full text-sm">
                 {s}
               </span>
             ))}
