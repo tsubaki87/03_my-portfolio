@@ -6,7 +6,10 @@ const about = await client.fetch(`
   *[_type == "about"][0] { name, bio, skills }
 `);
 ---
-<Layout title="About">
+<Layout
+  title="About"
+  description={about?.bio ?? 'プロフィールページです。'}
+>
   <h1 class="text-3xl font-bold text-[#0a2448] mb-8">About</h1>
 
   {!about ? (

@@ -8,7 +8,7 @@ const projects = await client.fetch(`
   }
 `);
 ---
-<Layout title="Works">
+<Layout title="Works" description="制作実績の一覧です。">
   <h1 class="text-3xl font-bold text-[#0a2448] mb-8">Works</h1>
   {projects.length === 0 ? (
     <p class="text-gray-400">制作実績はまだありません。</p>

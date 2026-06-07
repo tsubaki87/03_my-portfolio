@@ -12,7 +12,10 @@ const about = await client.fetch(`
   *[_type == "about"][0] { name, bio, skills }
 `);
 ---
-<Layout title="Home">
+<Layout
+  title="Home"
+  description={about?.bio ?? 'ポートフォリオサイトです。制作実績やプロフィールをご覧ください。'}
+>
   <section class="text-center py-16">
     <h1 class="text-4xl font-bold text-[#0a2448]">
       {about?.name ?? 'My Portfolio'}

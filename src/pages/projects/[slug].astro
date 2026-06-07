@@ -17,8 +17,16 @@ const project = await client.fetch(`
 `, { slug });
 
 if (!project) return Astro.redirect('/projects');
+
+const ogImage = project.mainImage
+  ? urlFor(project.mainImage).width(1200).height(630).fit('crop').url()
+  : undefined;
 ---
-<Layout title={project.title}>
+<Layout
+  title={project.title}
+  description={project.description}
+  ogImage={ogImage}
+>
   <nav class="text-sm text-gray-400 mb-8">
     <a href="/" class="text-[#4a9eff] hover:underline">Home</a>
     <span class="mx-2">›</span>
