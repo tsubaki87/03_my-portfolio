@@ -28,6 +28,7 @@ const resolvedUrl = ogUrl ?? `${siteUrl}${Astro.url.pathname}`;
     <meta name="generator" content={Astro.generator} />
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
+    <meta name="robots" content="noindex, nofollow" />
 
     <!-- OGP -->
     <meta property="og:title" content={pageTitle} />
