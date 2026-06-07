@@ -95,12 +95,15 @@ npm run preview  # ビルド結果のプレビュー
 ## デプロイ
 
 ### コード変更時
-`main` ブランチへの push で Cloudflare Workers に自動デプロイされます。
+`git push` 後、手動で `wrangler deploy` を実行してください（GitHub Actions 未設定）。
 
 ```bash
 git add .
 git commit -m "コミットメッセージ"
 git push origin main
+
+npm run build
+npx wrangler deploy
 ```
 
 ### コンテンツ更新時
@@ -121,7 +124,7 @@ Cloudflare が自動ビルド＆デプロイ（2〜3分）
 - [x] Tailwind CSS の導入（デザイン改善）
 - [x] 制作実績にメイン画像表示
 - [x] Sanity Webhook による自動再デプロイ
-- [ ] OGP / SEO メタタグ対応（コンテンツ整備後）
+- [x] OGP / Twitter Card メタタグ対応（※現在 noindex 設定中。コンテンツ整備後に解除）
 - [ ] カスタムドメイン設定（新規ドメイン取得時）
 - [ ] 制作実績にリッチテキスト（Portable Text）対応
 
