@@ -14,8 +14,32 @@ const about = await client.fetch(`
 ---
 <Layout
   title="Home"
+  transparentHeader
   description={about?.bio ?? 'ポートフォリオサイトです。制作実績やプロフィールをご覧ください。'}
 >
+  <Fragment slot="head">
+    <!-- Google Fonts: Montserrat (700 / 900) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&display=swap" rel="stylesheet" />
+  </Fragment>
+
+  <div class="hero" id="hero" slot="hero">
+    <canvas id="logoCanvas"></canvas>
+    <div class="final-logo" id="finalLogo">HANADA<br />DESIGN</div>
+
+    <!-- SVG Filter: 滲みとコントラスト処理でメタボール効果を作成 -->
+    <svg class="svg-filter" aria-hidden="true">
+      <defs>
+        <filter id="organic-filter">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur" />
+          <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="goo" />
+          <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+        </filter>
+      </defs>
+    </svg>
+  </div>
+
   <section class="text-center py-16">
     <h1 class="text-4xl font-bold text-[#0a2448]">
       {about?.name ?? 'My Portfolio'}
@@ -80,3 +104,291 @@ const about = await client.fetch(`
     </div>
   </section>
 </Layout>
+
+<style>
+  .hero {
+    background-color: #299dff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+    font-family: 'Montserrat', sans-serif;
+    position: relative;
+    width: 100%;
+  }
+
+  /* メタボール（有機的粘性）効果を出すためのSVGフィルター */
+  .svg-filter {
+    position: absolute;
+    width: 0;
+    height: 0;
+  }
+
+  /* CanvasにSVGフィルターを適用 */
+  canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    filter: url('#organic-filter');
+  }
+
+  /* 5秒後に表示する完成ロゴ */
+  .final-logo {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    text-align: center;
+    color: #fff;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 900;
+    font-size: min(13.3vw, 95px);
+    line-height: 1.15;
+    letter-spacing: 0.02em;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 1.2s ease;
+    z-index: 5;
+    pointer-events: none;
+    text-shadow: 0 0 24px rgba(100, 230, 210, 0.18);
+  }
+
+  .final-logo.show {
+    opacity: 1;
+    visibility: visible;
+  }
+</style>
+
+<script>
+  const hero = document.getElementById('hero') as HTMLDivElement;
+  const canvas = document.getElementById('logoCanvas') as HTMLCanvasElement;
+  const ctx = canvas.getContext('2d')!;
+  const finalLogo = document.getElementById('finalLogo') as HTMLDivElement;
+
+  let width = 0;
+  let height = 0;
+  let particles: Particle[] = [];
+  const PARTICLE_COUNT = 180; // 粒子数を増やして可読性をアップ
+  let animationFrameId = 0;
+  let revealTimer: ReturnType<typeof setTimeout> | undefined;
+  let dispersing = false;
+  const REVEAL_DELAY = 5000; // 5秒後に完成ロゴを表示
+  const SHRINK_RATE = 0.98; // 拡散時の縮小率（小さいほど早く縮む）
+  const PINK_LIGHTNESS = 82; // ピンク系水玉の明度（%）。大きいほど薄く白に近づく
+  const PINK_OPACITY = 0.8; // ピンク系水玉の不透明度（0〜1）
+  const BG_RGB = [0x29, 0x9d, 0xff]; // ヒーロー背景色 #299dff
+
+  // HSL → RGB 変換（h: 0〜360, s/l: 0〜100）
+  function hslToRgb(h: number, s: number, l: number) {
+    s /= 100;
+    l /= 100;
+    const k = (n: number) => (n + h / 30) % 12;
+    const a = s * Math.min(l, 1 - l);
+    const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return [f(0) * 255, f(8) * 255, f(4) * 255];
+  }
+
+  // 背景色と混ぜて、指定した不透明度で重ねたのと同じ色を作る
+  // （SVGフィルターがアルファを不透明に戻すため、globalAlpha ではなく色の混合で表現する）
+  function blendWithBg(rgb: number[], opacity: number) {
+    const [r, g, b] = rgb.map((c, i) => Math.round(c * opacity + BG_RGB[i] * (1 - opacity)));
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  // キャンバスのリサイズ設定（ウィンドウではなくヒーローエリアのサイズに合わせる）
+  function resize() {
+    width = canvas.width = hero.clientWidth;
+    height = canvas.height = hero.clientHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // 2行テキスト（Montserrat）のピクセル座標を取得
+  function getLogoCoordinates() {
+    const tempCanvas = document.createElement('canvas');
+    const tempCtx = tempCanvas.getContext('2d')!;
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+
+    // 画面サイズに応じてフォントサイズを調整
+    const fontSize = Math.min(width / 7.5, 95);
+    const lineHeight = fontSize * 1.15;
+
+    tempCtx.font = `900 ${fontSize}px "Montserrat", sans-serif`;
+    tempCtx.fillStyle = '#ffffff';
+    tempCtx.textAlign = 'center';
+    tempCtx.textBaseline = 'middle';
+
+    // 2行のテキストを描画
+    const centerY = height / 2;
+    tempCtx.fillText('HANADA', width / 2, centerY - lineHeight / 2);
+    tempCtx.fillText('DESIGN', width / 2, centerY + lineHeight / 2);
+
+    const imageData = tempCtx.getImageData(0, 0, width, height).data;
+    const points: { x: number; y: number }[] = [];
+    const step = 6; // 間隔を狭めて精密にサンプリング
+
+    for (let y = 0; y < height; y += step) {
+      for (let x = 0; x < width; x += step) {
+        const index = (y * width + x) * 4;
+        if (imageData[index + 3] > 128) {
+          points.push({ x, y });
+        }
+      }
+    }
+    return points;
+  }
+
+  // パーティクル（有機的な粒子）クラス
+  class Particle {
+    x = 0;
+    y = 0;
+    targetX = 0;
+    targetY = 0;
+    radius = 0;
+    noiseOffset = 0;
+    ease = 0;
+    colorHue = 0;
+    lightness = 55;
+    color = '';
+    vx = 0;
+    vy = 0;
+    alpha = 1;
+
+    constructor(targetX: number, targetY: number) {
+      this.reset(targetX, targetY);
+    }
+
+    reset(targetX: number, targetY: number) {
+      // 初期位置：画面中央付近にランダム配置
+      this.x = width / 2 + (Math.random() - 0.5) * 400;
+      this.y = height / 2 + (Math.random() - 0.5) * 400;
+
+      // 目標位置（文字のピクセル位置）
+      this.targetX = targetX;
+      this.targetY = targetY;
+
+      // 物理パラメータ
+      this.radius = Math.random() * 11 + 9;
+
+      // 波動ノイズ用パラメータ
+      this.noiseOffset = Math.random() * 1000;
+      this.ease = 0.035 + Math.random() * 0.025;
+
+      // 色合い（エメラルド〜アクアブルー系 + ピンク系）
+      // 濃い紺色に見える青側（色相215以上）はピンク系（色相320〜340）に置き換える
+      // ピンク系は明度を上げて薄い色にする
+      const hue = 165 + Math.random() * 80;
+      const isPink = hue >= 215;
+      this.colorHue = isPink ? 320 + Math.random() * 20 : hue;
+      this.lightness = isPink ? PINK_LIGHTNESS : 55;
+      this.color = isPink
+        ? blendWithBg(hslToRgb(this.colorHue, 100, this.lightness), PINK_OPACITY)
+        : `hsl(${this.colorHue}, 100%, ${this.lightness}%)`;
+
+      // 拡散用の速度・透明度
+      this.vx = 0;
+      this.vy = 0;
+      this.alpha = 1;
+    }
+
+    disperse() {
+      // 画面中央から外側へ、少しランダムさを加えて飛び出す
+      const dx = this.x - width / 2;
+      const dy = this.y - height / 2;
+      const angle = Math.atan2(dy, dx) + (Math.random() - 0.5) * 0.9;
+      const speed = 5 + Math.random() * 8;
+
+      this.vx = Math.cos(angle) * speed;
+      this.vy = Math.sin(angle) * speed;
+    }
+
+    update(time: number) {
+      if (dispersing) {
+        // 水玉が有機的に揺れながら四方へ拡散
+        const rippleX = Math.sin(time * 0.006 + this.noiseOffset) * 0.8;
+        const rippleY = Math.cos(time * 0.005 + this.noiseOffset) * 0.8;
+
+        this.x += this.vx + rippleX;
+        this.y += this.vy + rippleY;
+        // 拡散しながら水玉を次第に小さくする（1フレームごとに2%縮小）
+        this.radius *= SHRINK_RATE;
+        this.alpha = Math.max(0, this.alpha - 0.0025);
+        return;
+      }
+
+      // 目標位置へのイージング
+      const dx = this.targetX - this.x;
+      const dy = this.targetY - this.y;
+
+      // 有機的なゆらぎ（波運動）
+      const noiseX = Math.sin(time * 0.002 + this.noiseOffset) * 2.5;
+      const noiseY = Math.cos(time * 0.0025 + this.noiseOffset) * 2.5;
+
+      this.x += dx * this.ease + noiseX;
+      this.y += dy * this.ease + noiseY;
+    }
+
+    draw() {
+      if (this.alpha <= 0) return;
+      ctx.save();
+      ctx.globalAlpha = this.alpha;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+      ctx.fillStyle = this.color;
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // 初期化
+  function init() {
+    const targets = getLogoCoordinates();
+    particles = [];
+
+    if (targets.length === 0) return;
+
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      const target = targets[Math.floor(Math.random() * targets.length)];
+      particles.push(new Particle(target.x, target.y));
+    }
+  }
+
+  // アニメーションループ
+  function animate(time: number) {
+    ctx.clearRect(0, 0, width, height);
+
+    particles.forEach((p) => {
+      p.update(time);
+      p.draw();
+    });
+
+    animationFrameId = requestAnimationFrame(animate);
+  }
+
+  // 演出を最初から開始
+  function startAnimation() {
+    cancelAnimationFrame(animationFrameId);
+    clearTimeout(revealTimer);
+
+    // 完成ロゴをいったん隠し、粒子を通常状態に戻す
+    finalLogo.classList.remove('show');
+    dispersing = false;
+
+    // 粒子を初期化してアニメーション開始
+    init();
+    animate(0);
+
+    // 約5秒後、文字を表示すると同時に水玉を四方へ拡散
+    revealTimer = setTimeout(() => {
+      finalLogo.classList.add('show');
+      dispersing = true;
+      particles.forEach((p) => p.disperse());
+    }, REVEAL_DELAY);
+  }
+
+  // Webフォントのロード完了を待ってから開始
+  document.fonts.ready.then(startAnimation);
+</script>
