@@ -29,6 +29,7 @@ Sanity + Astro + Cloudflare Workers で構築したポートフォリオサイ�
 │  GitHub (tsubaki87/03_my-portfolio)             │
 │  ・ソースコード管理                              │
 │  ・main ブランチ保護（削除・force push 禁止）    │
+│  ・push で Cloudflare が自動ビルド＆デプロイ     │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -95,13 +96,29 @@ npm run preview  # ビルド結果のプレビュー
 ## デプロイ
 
 ### コード変更時
-`git push` 後、手動で `wrangler deploy` を実行してください（GitHub Actions 未設定）。
+`main` ブランチに `git push` するだけで自動デプロイされます（`wrangler deploy` の手動実行は不要）。
 
 ```bash
 git add .
 git commit -m "コミットメッセージ"
 git push origin main
+```
 
+```
+main ブランチに git push
+        ↓ Cloudflare Workers Builds が検知（GitHub App「Cloudflare Workers and Pages」経由）
+Cloudflare が自動ビルド＆デプロイ
+        ↓
+本番サイトに反映
+```
+
+- 仕組みは GitHub Actions ではなく、Cloudflare ダッシュボード側の **Workers Builds**（Worker `my-portfolio` と GitHub リポジトリの連携）です。
+- ビルド結果は GitHub のコミットの Checks（`Workers Builds: my-portfolio`）、または Cloudflare ダッシュボードの Workers & Pages → my-portfolio → Builds で確認できます。
+
+#### 手動デプロイ（緊急時のみ）
+自動デプロイが使えない場合は、ローカルから直接デプロイすることもできます（事前に `npx wrangler login` が必要）。
+
+```bash
 npm run build
 npx wrangler deploy
 ```
@@ -124,6 +141,7 @@ Cloudflare が自動ビルド＆デプロイ（2〜3分）
 - [x] Tailwind CSS の導入（デザイン改善）
 - [x] 制作実績にメイン画像表示
 - [x] Sanity Webhook による自動再デプロイ
+- [x] git push による自動デプロイ（Cloudflare Workers Builds）
 - [x] OGP / Twitter Card メタタグ対応（※現在 noindex 設定中。コンテンツ整備後に解除）
 - [ ] カスタムドメイン設定（新規ドメイン取得時）
 - [ ] 制作実績にリッチテキスト（Portable Text）対応
