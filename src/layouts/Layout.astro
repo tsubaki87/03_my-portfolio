@@ -12,14 +12,14 @@ interface Props {
 
 const {
   title,
-  description = 'My Portfolio — 制作実績・プロフィールをご覧ください。',
+  description = 'HANADA DESIGN — 制作実績・プロフィールをご覧ください。',
   ogImage,
   ogUrl,
   transparentHeader = false,
 } = Astro.props;
 
 const siteUrl = 'https://my-portfolio.hanada87.workers.dev';
-const pageTitle = `${title} | My Portfolio`;
+const pageTitle = `${title} | HANADA DESIGN`;
 const resolvedImage = ogImage ?? `${siteUrl}/og-default.png`;
 const resolvedUrl = ogUrl ?? `${siteUrl}${Astro.url.pathname}`;
 ---
@@ -41,7 +41,7 @@ const resolvedUrl = ogUrl ?? `${siteUrl}${Astro.url.pathname}`;
     <meta property="og:image" content={resolvedImage} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:site_name" content="My Portfolio" />
+    <meta property="og:site_name" content="HANADA DESIGN" />
     <meta property="og:locale" content="ja_JP" />
 
     <!-- Twitter Card -->
@@ -58,7 +58,7 @@ const resolvedUrl = ogUrl ?? `${siteUrl}${Astro.url.pathname}`;
       class="fixed inset-x-0 top-0 z-50 h-15 px-8 flex justify-between items-center bg-[#299dff] transition-colors duration-300 data-[transparent]:bg-transparent"
       data-transparent={transparentHeader ? '' : undefined}
     >
-      <a href="/" class="text-white font-bold text-lg">My Portfolio</a>
+      <a href="/" class="text-white font-bold text-lg">HANADA DESIGN</a>
       <nav>
         <a href="/" class="text-white hover:text-gray-300 ml-6 text-sm transition-colors">Home</a>
         <a href="/projects" class="text-white hover:text-gray-300 ml-6 text-sm transition-colors">Works</a>
@@ -71,9 +71,16 @@ const resolvedUrl = ogUrl ?? `${siteUrl}${Astro.url.pathname}`;
     <main class="max-w-4xl mx-auto px-6 py-10">
       <slot />
     </main>
+    <!-- 横幅制限なしで画面幅いっぱいに表示するセクション用 -->
+    <slot name="wide" />
     <footer class="text-center py-8 text-gray-400 text-xs border-t border-gray-100 mt-16">
-      © 2026 My Portfolio
+      © 2026 HANADA DESIGN
     </footer>
+
+    <script>
+      // 慣性スクロール（Lenis）を全ページで有効化
+      import '../lib/smooth-scroll';
+    </script>
 
     <script>
       // 透明ヘッダーのページ：ヒーローがヘッダーの下を通過したら背景色を付ける

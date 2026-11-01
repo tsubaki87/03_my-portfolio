@@ -42,7 +42,7 @@ const about = await client.fetch(`
 
   <section class="text-center py-16">
     <h1 class="text-4xl font-bold text-[#0a2448]">
-      {about?.name ?? 'My Portfolio'}
+      {about?.name ?? 'HANADA DESIGN'}
     </h1>
     {about?.bio && (
       <p class="mt-4 text-gray-500 max-w-md mx-auto leading-relaxed">
@@ -60,46 +60,55 @@ const about = await client.fetch(`
     )}
   </section>
 
-  <section>
-    <h2 class="text-xl font-bold text-[#0a2448] border-l-4 border-[#4a9eff] pl-3 mb-6">
-      Recent Works
-    </h2>
-    {projects.length === 0 ? (
-      <p class="text-gray-400">制作実績はまだありません。</p>
-    ) : (
-      <div class="grid gap-4">
+  <!-- Recent Works：画面幅いっぱい・高さ100vhのカードを縦に並べ、画像に視差をつける -->
+  <section slot="wide" aria-labelledby="recent-works-title">
+    <div class="max-w-4xl mx-auto px-6">
+      <h2 id="recent-works-title" class="text-xl font-bold text-[#0a2448] border-l-4 border-[#4a9eff] pl-3 mb-6">
+        Recent Works
+      </h2>
+      {projects.length === 0 && (
+        <p class="text-gray-400">制作実績はまだありません。</p>
+      )}
+    </div>
+
+    {projects.length > 0 && (
+      <div>
         {projects.map((p: any) => (
-          <a href={`/projects/${p.slug.current}`}
-            class="bg-white border border-gray-200 flex rounded hover:shadow-md transition-shadow overflow-hidden">
-            {p.mainImage ? (
-              <img
-                src={urlFor(p.mainImage).width(400).height(300).fit('crop').url()}
-                alt={p.title}
-                class="w-48 shrink-0 object-cover"
-              />
-            ) : (
-              <div class="w-48 shrink-0 bg-gray-100 flex items-center justify-center text-gray-300 text-sm">
-                No Image
+          <a href={`/projects/${p.slug.current}`} class="work-card group relative block h-screen overflow-hidden bg-[#0a2448]">
+            {/* 視差で動かす画像。カードより上下15%ずつ大きくしておき、その範囲内で上下に動かす */}
+            {p.mainImage && (
+              <div class="work-card__media absolute inset-x-0 -top-[15%] h-[130%] will-change-transform" data-parallax>
+                <img
+                  src={urlFor(p.mainImage).width(1920).auto('format').url()}
+                  srcset={[960, 1440, 1920, 2560]
+                    .map((w) => `${urlFor(p.mainImage).width(w).auto('format').url()} ${w}w`)
+                    .join(', ')}
+                  sizes="100vw"
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  class="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                />
               </div>
             )}
-            <div class="p-6 flex flex-col justify-center">
-              <h3 class="text-lg font-bold text-[#0a2448]">{p.title}</h3>
-              {p.description && (
-                <p class="text-gray-500 text-sm mt-2 leading-relaxed">{p.description}</p>
-              )}
-              {p.tags && (
-                <div class="mt-3 flex flex-wrap gap-1">
-                  {p.tags.map((t: string) => (
-                    <span class="bg-gray-100 text-gray-500 px-2 py-0.5 text-xs rounded">{t}</span>
-                  ))}
-                </div>
-              )}
+
+            <!-- 文字を読みやすくするためのグラデーション -->
+            <div class="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent" aria-hidden="true"></div>
+
+            <!-- 左下：タイトル / 右下：VIEW DETAILS → -->
+            <div class="absolute inset-x-0 bottom-0 flex items-end justify-between gap-6 px-8 pb-10 md:px-16 md:pb-12 text-white">
+              <h3 class="text-base md:text-xl font-bold leading-snug">{p.title}</h3>
+              <span class="shrink-0 inline-flex items-center gap-2 text-xs md:text-sm tracking-widest">
+                VIEW DETAILS
+                <span class="transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true">→</span>
+              </span>
             </div>
           </a>
         ))}
       </div>
     )}
-    <div class="text-right mt-4">
+
+    <div class="max-w-4xl mx-auto px-6 text-right mt-6">
       <a href="/projects" class="text-[#4a9eff] text-sm hover:underline">すべての実績を見る →</a>
     </div>
   </section>
@@ -391,4 +400,49 @@ const about = await client.fetch(`
 
   // Webフォントのロード完了を待ってから開始
   document.fonts.ready.then(startAnimation);
+</script>
+
+<script>
+  // 慣性スクロール（Lenis）は共通レイアウトで初期化済み。同じインスタンスを使う
+  import { lenis, reduceMotion } from '../lib/smooth-scroll';
+
+  // Recent Works カードの視差（パララックス）
+  // カードの中心が画面中心からどれだけ離れているかに応じて、画像を逆方向へずらす。
+  // 画像はスクロールよりゆっくり動いて見える。
+  const PARALLAX_SPEED = 0.15; // ずらす割合。画像の上下の余白（各15%）を超えない値にする
+
+  const parallaxItems = Array.from(document.querySelectorAll<HTMLElement>('[data-parallax]'));
+
+  if (parallaxItems.length > 0 && !reduceMotion) {
+    let ticking = false;
+
+    const updateParallax = () => {
+      const vh = window.innerHeight;
+      for (const item of parallaxItems) {
+        const card = item.parentElement!;
+        const rect = card.getBoundingClientRect();
+        // 画面外のカードは計算しない
+        if (rect.bottom < 0 || rect.top > vh) continue;
+        const offset = rect.top + rect.height / 2 - vh / 2;
+        item.style.transform = `translate3d(0, ${-offset * PARALLAX_SPEED}px, 0)`;
+      }
+      ticking = false;
+    };
+
+    const requestUpdate = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(updateParallax);
+      }
+    };
+
+    if (lenis) {
+      // Lenis のスクロール更新と同じフレームで視差を計算し、ズレ（カクつき）を防ぐ
+      lenis.on('scroll', updateParallax);
+    } else {
+      window.addEventListener('scroll', requestUpdate, { passive: true });
+    }
+    window.addEventListener('resize', requestUpdate);
+    updateParallax();
+  }
 </script>
