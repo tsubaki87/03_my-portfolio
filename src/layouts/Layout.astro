@@ -8,6 +8,8 @@ interface Props {
   ogUrl?: string;
   /** true のとき、ヘッダーをヒーロー上では透明にし、ヒーロー通過後に色付きにする（Topページ用） */
   transparentHeader?: boolean;
+  /** true のとき、本文の最大幅を広げる（カードを複数列で並べる一覧ページ用） */
+  wideMain?: boolean;
 }
 
 const {
@@ -16,6 +18,7 @@ const {
   ogImage,
   ogUrl,
   transparentHeader = false,
+  wideMain = false,
 } = Astro.props;
 
 const siteUrl = 'https://my-portfolio.hanada87.workers.dev';
@@ -68,7 +71,7 @@ const resolvedUrl = ogUrl ?? `${siteUrl}${Astro.url.pathname}`;
     <!-- 固定ヘッダーの高さ分の余白（透明ヘッダーのページはヒーローを最上部まで広げるため不要） -->
     {!transparentHeader && <div class="h-15" aria-hidden="true"></div>}
     <slot name="hero" />
-    <main class="max-w-4xl mx-auto px-6 py-10">
+    <main class:list={['mx-auto px-6 py-10', wideMain ? 'max-w-6xl' : 'max-w-4xl']}>
       <slot />
     </main>
     <!-- 横幅制限なしで画面幅いっぱいに表示するセクション用 -->

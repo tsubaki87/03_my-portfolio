@@ -8,51 +8,72 @@ const projects = await client.fetch(`
     _id, title, slug, description, tags, publishedAt, mainImage, youtubeUrl
   }
 `);
+
+// カード画像（16:9）のURL。画面幅に応じてブラウザが適切なサイズを選ぶ
+const imageWidths = [480, 720, 1080];
+const sanityImage = (img: any, w: number) =>
+  urlFor(img).width(w).height(Math.round((w * 9) / 16)).fit('crop').auto('format').url();
 ---
-<Layout title="Works" description="制作実績の一覧です。">
+<Layout title="Works" description="制作実績の一覧です。" wideMain>
   <h1 class="text-3xl font-bold text-[#0a2448] mb-8">Works</h1>
   {projects.length === 0 ? (
     <p class="text-gray-400">制作実績はまだありません。</p>
   ) : (
-    <div class="grid gap-4">
-      {projects.map((p: any) => (
-        <a href={`/projects/${p.slug.current}`}
-          class="bg-white border border-gray-200 block rounded hover:shadow-md transition-shadow overflow-hidden">
-          {(() => {
-            const ytId = getYouTubeId(p.youtubeUrl);
-            const src = p.mainImage
-              ? urlFor(p.mainImage).width(800).height(400).fit('crop').url()
-              : ytId ? youTubeThumbnailUrl(ytId) : null;
-            if (!src) return null;
-            return (
-              <div class="relative">
-                <img src={src} alt={p.title} class="w-full h-48 object-cover" loading="lazy" />
-                {ytId && (
-                  <span class="absolute top-3 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                    ▶ Video
-                  </span>
-                )}
-              </div>
-            );
-          })()}
-          <div class="p-6">
-            <h2 class="text-lg font-bold text-[#0a2448]">{p.title}</h2>
-            {p.description && (
-              <p class="text-gray-500 text-sm mt-2 leading-relaxed">{p.description}</p>
-            )}
-            {p.tags && (
-              <div class="mt-3 flex flex-wrap gap-1">
-                {p.tags.map((t: string) => (
-                  <span class="bg-gray-100 text-gray-500 px-2 py-0.5 text-xs rounded">{t}</span>
-                ))}
-              </div>
-            )}
-            {p.publishedAt && (
-              <p class="text-gray-300 text-xs mt-3">{p.publishedAt}</p>
-            )}
-          </div>
-        </a>
-      ))}
+    <!-- スマホ1列 → タブレット2列 → PC3列 -->
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {projects.map((p: any) => {
+        const ytId = getYouTubeId(p.youtubeUrl);
+        return (
+          <a href={`/projects/${p.slug.current}`}
+            class="group flex flex-col bg-white border border-gray-200 rounded overflow-hidden hover:shadow-md transition-shadow">
+            <!-- 画像（16:9）。画像がない作品も同じ高さの枠を確保してカードの高さをそろえる -->
+            <div class="relative aspect-video overflow-hidden bg-gray-100">
+              {p.mainImage ? (
+                <img
+                  src={sanityImage(p.mainImage, 720)}
+                  srcset={imageWidths.map((w) => `${sanityImage(p.mainImage, w)} ${w}w`).join(', ')}
+                  sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw"
+                  alt={p.title}
+                  loading="lazy"
+                  decoding="async"
+                  class="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                />
+              ) : ytId ? (
+                <img
+                  src={youTubeThumbnailUrl(ytId)}
+                  alt={p.title}
+                  loading="lazy"
+                  decoding="async"
+                  class="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                />
+              ) : null}
+              {ytId && (
+                <span class="absolute top-3 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                  ▶ Video
+                </span>
+              )}
+            </div>
+
+            <div class="flex flex-1 flex-col p-5">
+              <h2 class="text-base font-bold text-[#0a2448] leading-snug line-clamp-2">{p.title}</h2>
+              {p.description && (
+                <p class="text-gray-500 text-sm mt-2 leading-relaxed line-clamp-2">{p.description}</p>
+              )}
+              {p.tags && (
+                <div class="mt-3 flex flex-wrap gap-1">
+                  {p.tags.map((t: string) => (
+                    <span class="bg-gray-100 text-gray-500 px-2 py-0.5 text-xs rounded">{t}</span>
+                  ))}
+                </div>
+              )}
+              <!-- 日付はカードの下端にそろえる -->
+              {p.publishedAt && (
+                <p class="text-gray-300 text-xs mt-auto pt-3">{p.publishedAt}</p>
+              )}
+            </div>
+          </a>
+        );
+      })}
     </div>
   )}
 </Layout>
