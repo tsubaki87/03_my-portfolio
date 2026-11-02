@@ -1,9 +1,10 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { client, urlFor } from '../lib/sanity';
+import { getYouTubeId, youTubeThumbnailUrl } from '../lib/youtube';
 
 // 「トップに表示」がオンの作品を表示。1件もなければ新しい順の3件で代用する
-const projectFields = `{ _id, title, slug, description, tags, publishedAt, mainImage }`;
+const projectFields = `{ _id, title, slug, description, tags, publishedAt, mainImage, youtubeUrl }`;
 const featuredProjects = await client.fetch(`
   *[_type == "project" && featured == true] | order(publishedAt desc)[0...3] ${projectFields}
 `);
@@ -81,21 +82,43 @@ const about = await client.fetch(`
         {projects.map((p: any) => (
           <a href={`/projects/${p.slug.current}`} class="work-card group relative block h-screen overflow-hidden bg-[#0a2448]">
             {/* 視差で動かす画像。カードより上下15%ずつ大きくしておき、その範囲内で上下に動かす */}
-            {p.mainImage && (
-              <div class="work-card__media absolute inset-x-0 -top-[15%] h-[130%] will-change-transform" data-parallax>
-                <img
-                  src={urlFor(p.mainImage).width(1920).auto('format').url()}
-                  srcset={[960, 1440, 1920, 2560]
-                    .map((w) => `${urlFor(p.mainImage).width(w).auto('format').url()} ${w}w`)
-                    .join(', ')}
-                  sizes="100vw"
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                  class="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                />
-              </div>
-            )}
+            {/* YouTube がある場合は、画像の上に無音・ループの背景動画を重ねる。再生が始まるまでは画像を見せる */}
+            {(() => {
+              const ytId = getYouTubeId(p.youtubeUrl);
+              if (!p.mainImage && !ytId) return null;
+              return (
+                <div class="work-card__media absolute inset-x-0 -top-[15%] h-[130%] will-change-transform" data-parallax>
+                  <div class="h-full w-full transition-transform duration-700 ease-out group-hover:scale-105">
+                    {p.mainImage ? (
+                      <img
+                        src={urlFor(p.mainImage).width(1920).auto('format').url()}
+                        srcset={[960, 1440, 1920, 2560]
+                          .map((w) => `${urlFor(p.mainImage).width(w).auto('format').url()} ${w}w`)
+                          .join(', ')}
+                        sizes="100vw"
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        class="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <img
+                        src={youTubeThumbnailUrl(ytId!)}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        class="h-full w-full object-cover"
+                      />
+                    )}
+                    {ytId && (
+                      <div class="work-card__video" data-youtube-id={ytId} aria-hidden="true">
+                        <div data-youtube-player></div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             <!-- 文字を読みやすくするためのグラデーション -->
             <div class="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent" aria-hidden="true"></div>
@@ -172,6 +195,32 @@ const about = await client.fetch(`
   .final-logo.show {
     opacity: 1;
     visibility: visible;
+  }
+
+  /* Recent Works の背景動画。再生が始まるまで透明にして、下の画像を見せる */
+  .work-card__video {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none; /* クリックはカード（詳細ページへのリンク）に通す */
+    opacity: 0; /* 消すときは一瞬で消す（フェード中にボタンが見えないように） */
+  }
+
+  .work-card__video.is-playing {
+    opacity: 1;
+    transition: opacity 1s ease; /* 表示するときだけフェードイン */
+  }
+
+  /* 16:9 の動画を object-fit: cover と同じように枠いっぱいに広げる（枠は 100vw × 130vh）。
+     YouTube の iframe は JS で生成されるので :global で指定する */
+  .work-card__video :global(iframe) {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, calc(130vh * 16 / 9));
+    height: max(100%, calc(100vw * 9 / 16));
+    transform: translate(-50%, -50%);
+    border: 0;
   }
 </style>
 
@@ -449,5 +498,122 @@ const about = await client.fetch(`
     }
     window.addEventListener('resize', requestUpdate);
     updateParallax();
+  }
+
+  // Recent Works の背景動画（YouTube・無音・ループ）
+  // カードが画面に近づいたらプレーヤーを作り、画面外に出たら一時停止する。
+  // 「視差効果を減らす」設定の人には動画を再生せず、画像のままにする。
+  type YTPlayer = {
+    playVideo(): void;
+    pauseVideo(): void;
+    mute(): void;
+    seekTo(seconds: number, allowSeekAhead: boolean): void;
+  };
+  type YTNamespace = {
+    Player: new (el: HTMLElement, opts: Record<string, unknown>) => YTPlayer;
+    PlayerState: { PLAYING: number; BUFFERING: number; ENDED: number };
+  };
+  const w = window as unknown as { YT?: YTNamespace; onYouTubeIframeAPIReady?: () => void };
+
+  const videoWrappers = Array.from(document.querySelectorAll<HTMLElement>('[data-youtube-id]'));
+
+  // YouTube IFrame API を一度だけ読み込む
+  let apiPromise: Promise<YTNamespace> | undefined;
+  const loadYouTubeApi = () => {
+    apiPromise ??= new Promise((resolve) => {
+      if (w.YT?.Player) return resolve(w.YT);
+      w.onYouTubeIframeAPIReady = () => resolve(w.YT!);
+      const script = document.createElement('script');
+      script.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(script);
+    });
+    return apiPromise;
+  };
+
+  if (videoWrappers.length > 0 && !reduceMotion) {
+    const players = new Map<HTMLElement, YTPlayer>();
+    const visible = new Set<HTMLElement>();
+
+    const CONTROLS_VISIBLE_MS = 3500; // 再生開始後に YouTube の操作ボタンが表示される時間（＋余裕）
+
+    const createPlayer = async (wrapper: HTMLElement) => {
+      const YT = await loadYouTubeApi();
+      const id = wrapper.dataset.youtubeId!;
+      const target = wrapper.querySelector<HTMLElement>('[data-youtube-player]')!;
+      let hideTimer: ReturnType<typeof setTimeout> | undefined;
+      let revealTimer: ReturnType<typeof setTimeout> | undefined;
+      const player = new YT.Player(target, {
+        videoId: id,
+        host: 'https://www.youtube-nocookie.com',
+        playerVars: {
+          autoplay: 1,
+          mute: 1,
+          loop: 1,
+          playlist: id, // ループ再生には同じ動画を playlist に指定する必要がある
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
+          rel: 0,
+          playsinline: 1, // iPhone で全画面にならずにその場で再生する
+          iv_load_policy: 3,
+        },
+        events: {
+          onReady: () => {
+            players.set(wrapper, player); // 準備完了後でないと再生・停止の操作ができない
+            player.mute();
+            // 作成中に画面外へ出ていたら止めておく
+            if (visible.has(wrapper)) player.playVideo();
+            else player.pauseVideo();
+          },
+          onStateChange: (e: { data: number }) => {
+            // YouTube は停止中・読み込み中に画面中央へボタンやスピナーを出すため、
+            // 「再生中」のときだけ動画を見せ、それ以外は下の画像に戻す
+            clearTimeout(hideTimer);
+            clearTimeout(revealTimer);
+            if (e.data === YT.PlayerState.PLAYING) {
+              // YouTube は再生開始のたびに約3秒間、中央に操作ボタンを出す（設定では消せない）。
+              // ボタンが消えるまで画像のままにして、その後で動画をフェードインする。
+              // すでに表示中（ループの継ぎ目の一瞬の読み込みから復帰した場合など）はそのまま
+              if (!wrapper.classList.contains('is-playing')) {
+                revealTimer = setTimeout(() => wrapper.classList.add('is-playing'), CONTROLS_VISIBLE_MS);
+              }
+            } else if (e.data === YT.PlayerState.BUFFERING) {
+              // ループの継ぎ目などの一瞬の読み込みでは画像に戻さない
+              hideTimer = setTimeout(() => wrapper.classList.remove('is-playing'), 300);
+            } else {
+              wrapper.classList.remove('is-playing');
+              // 終了画面（リプレイボタン）を出さずに頭から再生し直す
+              if (e.data === YT.PlayerState.ENDED && visible.has(wrapper)) {
+                player.seekTo(0, true);
+                player.playVideo();
+              }
+            }
+          },
+        },
+      });
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const wrapper = entry.target as HTMLElement;
+          if (entry.isIntersecting) {
+            visible.add(wrapper);
+            const player = players.get(wrapper);
+            if (player) player.playVideo();
+            else if (!wrapper.dataset.loading) {
+              wrapper.dataset.loading = 'true';
+              createPlayer(wrapper);
+            }
+          } else {
+            visible.delete(wrapper);
+            players.get(wrapper)?.pauseVideo();
+          }
+        }
+      },
+      { rootMargin: '200px 0px' } // 少し手前から読み込み始める
+    );
+
+    for (const wrapper of videoWrappers) observer.observe(wrapper);
   }
 </script>
