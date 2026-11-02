@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import { client, urlFor } from '../../lib/sanity';
 import { getYouTubeId, youTubeEmbedUrl, youTubeThumbnailUrl } from '../../lib/youtube';
+import { splitLinks } from '../../lib/linkify';
 
 export async function getStaticPaths() {
   const projects = await client.fetch(`
@@ -75,7 +76,12 @@ const ogImage = project.mainImage
   )}
 
   {project.description && (
-    <p class="text-gray-500 leading-relaxed">{project.description}</p>
+    <!-- 説明文中の URL はリンクにする。改行は入力どおりに表示する -->
+    <p class="text-gray-500 leading-relaxed whitespace-pre-line break-words">{splitLinks(project.description).map((part) =>
+      part.type === 'link'
+        ? <a href={part.value} target="_blank" rel="noopener noreferrer" class="text-[#4a9eff] hover:underline break-all">{part.value}</a>
+        : part.value
+    )}</p>
   )}
 
   {project.publishedAt && (
