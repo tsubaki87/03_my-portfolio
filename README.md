@@ -49,7 +49,7 @@ Sanity + Astro + Cloudflare Workers で構築したポートフォリオサイ�
 ## コンテンツ型（Sanity スキーマ）
 
 **project（制作実績）**
-- title / slug / mainImage / description / tags / publishedAt
+- title / slug / mainImage / youtubeUrl / description / tags / publishedAt
 
 **about（プロフィール）**
 - name / bio / skills

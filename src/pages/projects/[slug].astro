@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { client, urlFor } from '../../lib/sanity';
+import { getYouTubeId, youTubeEmbedUrl, youTubeThumbnailUrl } from '../../lib/youtube';
 
 export async function getStaticPaths() {
   const projects = await client.fetch(`
@@ -12,15 +13,19 @@ export async function getStaticPaths() {
 const { slug } = Astro.params;
 const project = await client.fetch(`
   *[_type == "project" && slug.current == $slug][0] {
-    _id, title, description, tags, publishedAt, mainImage
+    _id, title, description, tags, publishedAt, mainImage, youtubeUrl
   }
 `, { slug });
 
 if (!project) return Astro.redirect('/projects');
 
+const youtubeId = getYouTubeId(project.youtubeUrl);
+
 const ogImage = project.mainImage
   ? urlFor(project.mainImage).width(1200).height(630).fit('crop').url()
-  : undefined;
+  : youtubeId
+    ? youTubeThumbnailUrl(youtubeId)
+    : undefined;
 ---
 <Layout
   title={project.title}
@@ -45,6 +50,20 @@ const ogImage = project.mainImage
       alt={project.title}
       class="w-full h-72 object-cover rounded mb-6"
     />
+  )}
+
+  {youtubeId && (
+    <div class="relative w-full aspect-video rounded overflow-hidden bg-black mb-6">
+      <iframe
+        src={youTubeEmbedUrl(youtubeId)}
+        title={`${project.title} - YouTube`}
+        class="absolute inset-0 w-full h-full"
+        loading="lazy"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        referrerpolicy="strict-origin-when-cross-origin"
+        allowfullscreen
+      ></iframe>
+    </div>
   )}
 
   {project.tags && (

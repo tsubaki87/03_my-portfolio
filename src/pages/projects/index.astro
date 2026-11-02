@@ -1,10 +1,11 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { client, urlFor } from '../../lib/sanity';
+import { getYouTubeId, youTubeThumbnailUrl } from '../../lib/youtube';
 
 const projects = await client.fetch(`
   *[_type == "project"] | order(publishedAt desc) {
-    _id, title, slug, description, tags, publishedAt, mainImage
+    _id, title, slug, description, tags, publishedAt, mainImage, youtubeUrl
   }
 `);
 ---
@@ -17,13 +18,23 @@ const projects = await client.fetch(`
       {projects.map((p: any) => (
         <a href={`/projects/${p.slug.current}`}
           class="bg-white border border-gray-200 block rounded hover:shadow-md transition-shadow overflow-hidden">
-          {p.mainImage && (
-            <img
-              src={urlFor(p.mainImage).width(800).height(400).fit('crop').url()}
-              alt={p.title}
-              class="w-full h-48 object-cover"
-            />
-          )}
+          {(() => {
+            const ytId = getYouTubeId(p.youtubeUrl);
+            const src = p.mainImage
+              ? urlFor(p.mainImage).width(800).height(400).fit('crop').url()
+              : ytId ? youTubeThumbnailUrl(ytId) : null;
+            if (!src) return null;
+            return (
+              <div class="relative">
+                <img src={src} alt={p.title} class="w-full h-48 object-cover" loading="lazy" />
+                {ytId && (
+                  <span class="absolute top-3 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                    ▶ Video
+                  </span>
+                )}
+              </div>
+            );
+          })()}
           <div class="p-6">
             <h2 class="text-lg font-bold text-[#0a2448]">{p.title}</h2>
             {p.description && (

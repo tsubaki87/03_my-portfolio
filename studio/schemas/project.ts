@@ -25,6 +25,19 @@ export default defineType({
       options: { hotspot: true },
     }),
     defineField({
+      name: 'youtubeUrl',
+      title: 'YouTube 動画 URL',
+      description: '例: https://www.youtube.com/watch?v=xxxxxxxxxxx / https://youtu.be/xxxxxxxxxxx',
+      type: 'url',
+      validation: (Rule) =>
+        Rule.uri({ scheme: ['https'] }).custom((value) => {
+          if (!value) return true;
+          return /^https:\/\/(www\.|m\.)?(youtube\.com|youtu\.be)\//.test(value)
+            ? true
+            : 'YouTube の URL を入力してください';
+        }),
+    }),
+    defineField({
       name: 'description',
       title: '説明',
       type: 'text',
