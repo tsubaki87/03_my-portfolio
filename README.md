@@ -52,7 +52,7 @@ Sanity + Astro + Cloudflare Workers で構築したポートフォリオサイ�
 - title / slug / mainImage / youtubeUrl / description / tags / featured（トップに表示） / publishedAt
 
 **about（プロフィール）**
-- name / bio / skills
+- name / avatar / bio / skills / companyProfile（会社概要の表） / address / tel / mapEmbed（Google マップ）
 
 ---
 

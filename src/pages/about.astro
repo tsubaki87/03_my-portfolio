@@ -1,38 +1,113 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { client } from '../lib/sanity';
+import { client, urlFor } from '../lib/sanity';
 
 const about = await client.fetch(`
-  *[_type == "about"][0] { name, bio, skills }
+  *[_type == "about"][0] {
+    name, avatar, bio, skills,
+    companyProfile[] { _key, label, value, url },
+    address, tel, mapEmbed
+  }
 `);
+
+// 埋め込みコード（<iframe ...> でも URL だけでもよい）から Google マップの URL を取り出す
+const mapSrc = about?.mapEmbed
+  ?.match(/https:\/\/www\.google\.com\/maps\/embed\?[^"'\s>]+/)?.[0]
+  .replaceAll('&amp;', '&');
+
+// 電話番号部分を tel: リンクにする（スマホでタップして発信できる）
+const PHONE = /0\d{1,4}-\d{1,4}-\d{3,4}/;
+const telParts = about?.tel?.split(PHONE) ?? [];
+const telNumber = about?.tel?.match(PHONE)?.[0];
+
+const headingClass = 'text-xl font-bold text-[#0a2448] border-l-4 border-[#4a9eff] pl-3 mb-6';
 ---
 <Layout
   title="About"
   description={about?.bio ?? 'プロフィールページです。'}
 >
-  <h1 class="text-3xl font-bold text-[#0a2448] mb-8">About</h1>
+  <h1 class="text-3xl font-bold text-[#0a2448] mb-10">About</h1>
 
   {!about ? (
     <p class="text-gray-400">プロフィールはまだ登録されていません。</p>
   ) : (
-    <div class="bg-white border border-gray-200 p-8 rounded">
-      <h2 class="text-2xl font-bold text-[#0a2448] mb-4">
-        {about.name}
-      </h2>
-      {about.bio && (
-        <p class="text-gray-500 leading-relaxed whitespace-pre-wrap">{about.bio}</p>
-      )}
-      {about.skills && (
-        <div class="mt-6">
-          <h3 class="text-sm font-bold text-gray-400 mb-3">Skills</h3>
-          <div class="flex flex-wrap gap-2">
-            {about.skills.map((s: string) => (
-              <span class="bg-blue-50 text-[#0a2448] px-3 py-1 rounded-full text-sm">
-                {s}
-              </span>
-            ))}
+    <div class="space-y-14">
+      <!-- About Me -->
+      <section aria-labelledby="about-me">
+        <h2 id="about-me" class={headingClass}>About Me</h2>
+        <div class="flex flex-col sm:flex-row gap-6 items-start">
+          {about.avatar && (
+            <img
+              src={urlFor(about.avatar).width(240).height(240).fit('crop').auto('format').url()}
+              alt={about.name}
+              width="120"
+              height="120"
+              class="w-28 h-28 rounded-full object-cover shrink-0"
+            />
+          )}
+          <div>
+            <p class="text-lg font-bold text-[#0a2448]">{about.name}</p>
+            {about.bio && (
+              <p class="mt-2 text-gray-600 leading-relaxed whitespace-pre-line">{about.bio}</p>
+            )}
+            {about.skills?.length > 0 && (
+              <div class="mt-4 flex flex-wrap gap-2">
+                {about.skills.map((s: string) => (
+                  <span class="bg-blue-50 text-[#0a2448] px-3 py-1 rounded-full text-sm">{s}</span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
+      </section>
+
+      <!-- Company Profile：項目名と内容の表 -->
+      {about.companyProfile?.length > 0 && (
+        <section aria-labelledby="company-profile">
+          <h2 id="company-profile" class={headingClass}>Company Profile</h2>
+          <dl class="border-t border-gray-200">
+            {about.companyProfile.map((row: any) => (
+              <div class="grid sm:grid-cols-[10rem_1fr] gap-1 sm:gap-6 py-4 border-b border-gray-200">
+                <dt class="text-sm font-bold text-[#0a2448] sm:pt-0.5">{row.label}</dt>
+                <dd class="text-gray-600 leading-relaxed whitespace-pre-line">
+                  {row.url ? (
+                    <a href={row.url} target="_blank" rel="noopener noreferrer" class="text-[#4a9eff] hover:underline">{row.value}</a>
+                  ) : row.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
+
+      <!-- Access Map：住所・電話と Google マップ -->
+      {(about.address || about.tel || mapSrc) && (
+        <section aria-labelledby="access-map">
+          <h2 id="access-map" class={headingClass}>Access Map</h2>
+          <address class="not-italic text-gray-600 leading-relaxed">
+            <p class="font-bold text-[#0a2448]">{about.name}</p>
+            {about.address && <p class="whitespace-pre-line">{about.address}</p>}
+            {about.tel && (
+              <p>
+                {telNumber
+                  ? <>{telParts[0]}<a href={`tel:${telNumber.replaceAll('-', '')}`} class="text-[#4a9eff] hover:underline">{telNumber}</a>{telParts[1]}</>
+                  : about.tel}
+              </p>
+            )}
+          </address>
+          {mapSrc && (
+            <div class="mt-6 aspect-[4/3] sm:aspect-video w-full overflow-hidden rounded border border-gray-200 bg-gray-100">
+              <iframe
+                src={mapSrc}
+                title={`${about.name} の地図`}
+                class="w-full h-full border-0"
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                allowfullscreen
+              ></iframe>
+            </div>
+          )}
+        </section>
       )}
     </div>
   )}
