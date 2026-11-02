@@ -2,11 +2,16 @@
 import Layout from '../layouts/Layout.astro';
 import { client, urlFor } from '../lib/sanity';
 
-const projects = await client.fetch(`
-  *[_type == "project"] | order(publishedAt desc)[0...3] {
-    _id, title, slug, description, tags, publishedAt, mainImage
-  }
+// 「トップに表示」がオンの作品を表示。1件もなければ新しい順の3件で代用する
+const projectFields = `{ _id, title, slug, description, tags, publishedAt, mainImage }`;
+const featuredProjects = await client.fetch(`
+  *[_type == "project" && featured == true] | order(publishedAt desc)[0...3] ${projectFields}
 `);
+const projects = featuredProjects.length > 0
+  ? featuredProjects
+  : await client.fetch(`
+      *[_type == "project"] | order(publishedAt desc)[0...3] ${projectFields}
+    `);
 
 const about = await client.fetch(`
   *[_type == "about"][0] { name, bio, skills }

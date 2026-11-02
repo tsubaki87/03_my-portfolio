@@ -51,6 +51,13 @@ export default defineType({
       options: { layout: 'tags' },
     }),
     defineField({
+      name: 'featured',
+      title: 'トップに表示',
+      description: 'オンにするとトップページの Recent Works に表示されます（公開日の新しい順に最大3件）',
+      type: 'boolean',
+      initialValue: false,
+    }),
+    defineField({
       name: 'publishedAt',
       title: '公開日',
       type: 'date',
