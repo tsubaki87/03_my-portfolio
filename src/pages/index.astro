@@ -32,7 +32,16 @@ const about = await client.fetch(`
 
   <div class="hero" id="hero" slot="hero">
     <canvas id="logoCanvas"></canvas>
-    <div class="final-logo" id="finalLogo">HANADA<br />DESIGN</div>
+    <!-- 完成ロゴ：1文字ずつ span に分け、--i（通し番号）で表示を順にずらす -->
+    <div class="final-logo" id="finalLogo" role="img" aria-label="HANADA DESIGN">
+      {['HANADA', 'DESIGN'].map((word, line) => (
+        <span class="final-logo__line" aria-hidden="true">
+          {[...word].map((char, i) => (
+            <span class="final-logo__char" style={`--i: ${line * word.length + i}`}>{char}</span>
+          ))}
+        </span>
+      ))}
+    </div>
 
     <!-- SVG Filter: 滲みとコントラスト処理でメタボール効果を作成 -->
     <svg class="svg-filter" aria-hidden="true">
@@ -181,20 +190,60 @@ const about = await client.fetch(`
     color: #fff;
     font-family: 'Montserrat', sans-serif;
     font-weight: 900;
-    font-size: min(13.3vw, 95px);
+    /* 水玉が集まる文字（スクリプトの LOGO_* 定数）と同じ大きさにそろえる */
+    font-size: min(8.7vw, 62px);
     line-height: 1.15;
     letter-spacing: 0.02em;
-    opacity: 0;
     visibility: hidden;
-    transition: opacity 1.2s ease;
     z-index: 5;
     pointer-events: none;
     text-shadow: 0 0 24px rgba(100, 230, 210, 0.18);
   }
 
   .final-logo.show {
-    opacity: 1;
     visibility: visible;
+  }
+
+  .final-logo__line {
+    display: block;
+  }
+
+  /* 1文字ずつ、下からぼかしが取れながら浮かび上がる */
+  .final-logo__char {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(0.35em);
+    filter: blur(8px);
+  }
+
+  .final-logo.show .final-logo__char {
+    animation: char-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation-delay: calc(var(--i) * 0.09s); /* 1文字ごとの間隔 */
+  }
+
+  @keyframes char-in {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+  }
+
+  /* 視差効果を減らす設定のときは、動かさずにふわっと表示するだけにする */
+  @media (prefers-reduced-motion: reduce) {
+    .final-logo__char {
+      transform: none;
+      filter: none;
+    }
+    .final-logo.show .final-logo__char {
+      animation: char-fade 0.6s ease forwards;
+      animation-delay: 0s;
+    }
+    @keyframes char-fade {
+      to {
+        opacity: 1;
+      }
+    }
   }
 
   /* Recent Works の背景動画。再生が始まるまで透明にして、下の画像を見せる */
@@ -242,6 +291,13 @@ const about = await client.fetch(`
   const PINK_LIGHTNESS = 82; // ピンク系水玉の明度（%）。大きいほど薄く白に近づく
   const PINK_OPACITY = 0.8; // ピンク系水玉の不透明度（0〜1）
   const BG_RGB = [0x29, 0x9d, 0xff]; // ヒーロー背景色 #299dff
+  const LOGO_WIDTH_RATIO = 11.5; // ロゴ文字の大きさ＝画面幅 ÷ この値（8.7vw 相当）
+  const LOGO_MAX_SIZE = 62; // ロゴ文字の最大サイズ（px）
+
+  // ロゴ文字の大きさ（画面幅に応じて決まる）
+  function logoFontSize() {
+    return Math.min(width / LOGO_WIDTH_RATIO, LOGO_MAX_SIZE);
+  }
 
   // HSL → RGB 変換（h: 0〜360, s/l: 0〜100）
   function hslToRgb(h: number, s: number, l: number) {
@@ -276,7 +332,8 @@ const about = await client.fetch(`
     tempCanvas.height = height;
 
     // 画面サイズに応じてフォントサイズを調整
-    const fontSize = Math.min(width / 7.5, 95);
+    // （完成ロゴの CSS「font-size: min(8.7vw, 62px)」と同じ大きさにそろえる）
+    const fontSize = logoFontSize();
     const lineHeight = fontSize * 1.15;
 
     tempCtx.font = `900 ${fontSize}px "Montserrat", sans-serif`;
@@ -334,7 +391,9 @@ const about = await client.fetch(`
       this.targetY = targetY;
 
       // 物理パラメータ
-      this.radius = Math.random() * 11 + 9;
+      // 水玉の大きさは文字の大きさに比例させる（文字 95px のとき半径 9〜20px）
+      const scale = logoFontSize() / 95;
+      this.radius = (Math.random() * 11 + 9) * scale;
 
       // 波動ノイズ用パラメータ
       this.noiseOffset = Math.random() * 1000;
