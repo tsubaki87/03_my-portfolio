@@ -86,6 +86,11 @@ const resolvedUrl = ogUrl ?? `${siteUrl}${Astro.url.pathname}`;
     </script>
 
     <script>
+      // マウスの矢印を空色の丸が追従する（タッチ端末では無効）
+      import '../lib/cursor-follower';
+    </script>
+
+    <script>
       // 透明ヘッダーのページ：ヒーローがヘッダーの下を通過したら背景色を付ける
       const header = document.getElementById('site-header');
       const hero = document.getElementById('hero');

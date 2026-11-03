@@ -1,1 +1,105 @@
 @import "tailwindcss";
+
+/* カーソル追従サークル（src/lib/cursor-follower.ts） */
+.cursor-follower {
+  --cursor-size: 20px;
+  --cursor-hover-size: 56px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.cursor-follower.is-visible {
+  opacity: 1;
+}
+
+/* 丸：通常は空色、ホバー時は白 */
+.cursor-follower__circle {
+  position: absolute;
+  top: calc(var(--cursor-size) / -2);
+  left: calc(var(--cursor-size) / -2);
+  width: var(--cursor-size);
+  height: var(--cursor-size);
+  border-radius: 50%;
+  background: rgb(135 206 250 / 0.55);
+  will-change: transform;
+  /* transform はJSが毎フレーム上書きするので、大きさは width/height で変える */
+  transition:
+    width 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    top 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    left 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.25s ease;
+}
+/* ホバー時の白丸（影付き。明るい背景でも輪郭が見えるように） */
+.cursor-follower__circle::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 0.15);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.cursor-follower.is-hover .cursor-follower__circle {
+  --cursor-size: var(--cursor-hover-size);
+  background: transparent;
+}
+.cursor-follower.is-hover .cursor-follower__circle::before {
+  opacity: 1;
+}
+.cursor-follower.is-down .cursor-follower__circle {
+  --cursor-size: 14px;
+}
+.cursor-follower.is-hover.is-down .cursor-follower__circle {
+  --cursor-size: 44px;
+}
+
+/* 十字：ホバー時のみ中心に表示 */
+.cursor-follower__cross {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  width: 16px;
+  height: 16px;
+  opacity: 0;
+  transform: scale(0.4) rotate(-45deg);
+  transition:
+    opacity 0.2s ease,
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cursor-follower__cross::before,
+.cursor-follower__cross::after {
+  content: '';
+  position: absolute;
+  background: #299dff;
+}
+.cursor-follower__cross::before {
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  transform: translateY(-50%);
+}
+.cursor-follower__cross::after {
+  left: 50%;
+  top: 0;
+  height: 100%;
+  width: 1.5px;
+  transform: translateX(-50%);
+}
+.cursor-follower.is-hover .cursor-follower__cross {
+  opacity: 1;
+  transform: scale(1) rotate(0);
+}
+
+/* 追従サークル有効時、リンク上でも手のアイコンにせず矢印のままにする（白丸＋十字で示す） */
+.has-cursor-follower :is(a, button, [role="button"], label, summary, select) {
+  cursor: default;
+}
