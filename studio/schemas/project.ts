@@ -38,10 +38,49 @@ export default defineType({
         }),
     }),
     defineField({
+      name: 'topVideoUrl',
+      title: 'トップページ専用動画 URL',
+      description:
+        'トップの Recent Works に無音・ループで流す動画（MP4 推奨）。Cloudflare R2 などに置いた動画の URL を入力します。' +
+        '設定すると YouTube 動画より優先されます。例: https://media.example.com/works/xxx.mp4',
+      type: 'url',
+      validation: (Rule) => Rule.uri({ scheme: ['https'], allowRelative: true }),
+    }),
+    defineField({
       name: 'description',
       title: '説明',
       type: 'text',
       rows: 4,
+    }),
+    defineField({
+      name: 'links',
+      title: 'リンクボタン',
+      description: '詳細ページの説明文の下に、ボタンとして表示されます（例: 「サイトを見る」「GitHub」）',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          name: 'linkButton',
+          title: 'リンクボタン',
+          fields: [
+            defineField({
+              name: 'label',
+              title: 'ボタンの名前',
+              type: 'string',
+              validation: (Rule) => Rule.required(),
+            }),
+            defineField({
+              name: 'url',
+              title: 'リンク先 URL',
+              type: 'url',
+              validation: (Rule) => Rule.required().uri({ scheme: ['http', 'https'] }),
+            }),
+          ],
+          preview: {
+            select: { title: 'label', subtitle: 'url' },
+          },
+        },
+      ],
     }),
     defineField({
       name: 'tags',

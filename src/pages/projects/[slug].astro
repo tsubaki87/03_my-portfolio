@@ -14,7 +14,8 @@ export async function getStaticPaths() {
 const { slug } = Astro.params;
 const project = await client.fetch(`
   *[_type == "project" && slug.current == $slug][0] {
-    _id, title, description, tags, publishedAt, mainImage, youtubeUrl
+    _id, title, description, tags, publishedAt, mainImage, youtubeUrl,
+    "links": links[defined(label) && defined(url)] { _key, label, url }
   }
 `, { slug });
 
@@ -82,6 +83,23 @@ const ogImage = project.mainImage
         ? <a href={part.value} target="_blank" rel="noopener noreferrer" class="text-[#4a9eff] hover:underline break-all">{part.value}</a>
         : part.value
     )}</p>
+  )}
+
+  {project.links?.length > 0 && (
+    <!-- リンクボタン（Sanity の「リンクボタン」で名前と URL を設定）。外部サイトは新しいタブで開く -->
+    <div class="flex flex-wrap gap-3 mt-6">
+      {project.links.map((link: { _key: string; label: string; url: string }) => (
+        <a
+          href={link.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="group inline-flex items-center gap-2 rounded-full bg-[#4a9eff] px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-[#0a2448] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4a9eff]"
+        >
+          {link.label}
+          <span class="transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true">→</span>
+        </a>
+      ))}
+    </div>
   )}
 
   {project.publishedAt && (
