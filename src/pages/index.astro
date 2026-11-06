@@ -75,11 +75,11 @@ const about = await client.fetch(`
     )}
   </section>
 
-  <!-- Recent Works：画面幅いっぱい・高さ100vhのカードを縦に並べ、画像に視差をつける -->
-  <section slot="wide" aria-labelledby="recent-works-title">
+  <!-- Recent Projects：画面幅いっぱい・高さ100vhのカードを縦に並べ、画像に視差をつける -->
+  <section slot="wide" aria-labelledby="recent-projects-title">
     <div class="max-w-4xl mx-auto px-6">
-      <h2 id="recent-works-title" class="text-xl font-bold text-[#0a2448] border-l-4 border-[#4a9eff] pl-3 mb-6">
-        Recent Works
+      <h2 id="recent-projects-title" class="text-xl font-bold text-[#0a2448] border-l-4 border-[#4a9eff] pl-3 mb-6">
+        Recent Projects
       </h2>
       {projects.length === 0 && (
         <p class="text-gray-400">制作実績はまだありません。</p>
@@ -262,7 +262,7 @@ const about = await client.fetch(`
     }
   }
 
-  /* Recent Works の背景動画。再生が始まるまで透明にして、下の画像を見せる */
+  /* Recent Projects の背景動画。再生が始まるまで透明にして、下の画像を見せる */
   .work-card__video {
     position: absolute;
     inset: 0;
@@ -535,7 +535,7 @@ const about = await client.fetch(`
   // 慣性スクロール（Lenis）は共通レイアウトで初期化済み。同じインスタンスを使う
   import { lenis, reduceMotion } from '../lib/smooth-scroll';
 
-  // Recent Works カードの視差（パララックス）
+  // Recent Projects カードの視差（パララックス）
   // カードの中心が画面中心からどれだけ離れているかに応じて、画像を逆方向へずらす。
   // 画像はスクロールよりゆっくり動いて見える。
   const PARALLAX_SPEED = 0.15; // ずらす割合。画像の上下の余白（各15%）を超えない値にする
@@ -575,7 +575,7 @@ const about = await client.fetch(`
     updateParallax();
   }
 
-  // Recent Works のトップページ専用動画（動画ファイル・無音・ループ）
+  // Recent Projects のトップページ専用動画（動画ファイル・無音・ループ）
   // 画面に近づいたら読み込んで再生し、画面外に出たら一時停止する。
   // 「視差効果を減らす」設定の人には再生せず、画像のままにする。
   const topVideos = Array.from(document.querySelectorAll<HTMLVideoElement>('video[data-top-video]'));
@@ -607,7 +607,7 @@ const about = await client.fetch(`
     for (const video of topVideos) videoObserver.observe(video);
   }
 
-  // Recent Works の背景動画（YouTube・無音・ループ）
+  // Recent Projects の背景動画（YouTube・無音・ループ）
   // カードが画面に近づいたらプレーヤーを作り、画面外に出たら一時停止する。
   // 「視差効果を減らす」設定の人には動画を再生せず、画像のままにする。
   type YTPlayer = {

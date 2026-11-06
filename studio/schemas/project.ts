@@ -19,6 +19,22 @@ export default defineType({
       validation: (Rule) => Rule.required(),
     }),
     defineField({
+      name: 'category',
+      title: 'カテゴリー',
+      description: 'Project 一覧のタブ（RUN / FUN / PLAY）で絞り込むときに使います',
+      type: 'string',
+      options: {
+        list: [
+          { title: 'RUN', value: 'run' },
+          { title: 'FUN', value: 'fun' },
+          { title: 'PLAY', value: 'play' },
+        ],
+        layout: 'radio',
+        direction: 'horizontal',
+      },
+      validation: (Rule) => Rule.required().error('カテゴリーを選んでください'),
+    }),
+    defineField({
       name: 'mainImage',
       title: 'メイン画像',
       type: 'image',
@@ -41,7 +57,7 @@ export default defineType({
       name: 'topVideoUrl',
       title: 'トップページ専用動画 URL',
       description:
-        'トップの Recent Works に無音・ループで流す動画（MP4 推奨）。Cloudflare R2 などに置いた動画の URL を入力します。' +
+        'トップの Recent Projects に無音・ループで流す動画（MP4 推奨）。Cloudflare R2 などに置いた動画の URL を入力します。' +
         '設定すると YouTube 動画より優先されます。例: https://media.example.com/works/xxx.mp4',
       type: 'url',
       validation: (Rule) => Rule.uri({ scheme: ['https'], allowRelative: true }),
@@ -92,7 +108,7 @@ export default defineType({
     defineField({
       name: 'featured',
       title: 'トップに表示',
-      description: 'オンにするとトップページの Recent Works に表示されます（公開日の新しい順に最大3件）',
+      description: 'オンにするとトップページの Recent Projects に表示されます（公開日の新しい順に最大3件）',
       type: 'boolean',
       initialValue: false,
     }),
@@ -103,6 +119,11 @@ export default defineType({
     }),
   ],
   preview: {
-    select: { title: 'title', media: 'mainImage' },
+    select: { title: 'title', media: 'mainImage', category: 'category' },
+    prepare: ({ title, media, category }) => ({
+      title,
+      media,
+      subtitle: category ? category.toUpperCase() : 'カテゴリー未設定',
+    }),
   },
 });
