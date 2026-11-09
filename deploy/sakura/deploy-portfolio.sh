@@ -26,12 +26,18 @@ OLD="$WORK/old-$TS"
 LOCK="$WORK/.lock"
 
 mkdir -p "$WORK"
-# 同時に 2 つ動かない
+# 同時に 2 つ動かない。30 分より古い札は、途中で切れた跡なので外す
+if [ -d "$LOCK" ] && [ -n "$(find "$LOCK" -maxdepth 0 -mmin +30)" ]; then
+  echo "古い .lock を外します" >&2
+  rmdir "$LOCK"
+fi
 if ! mkdir "$LOCK" 2>/dev/null; then
-  echo "ERROR: 別のアップロードが動いています" >&2
+  echo "ERROR: 別のアップロードが動いています（${LOCK}）" >&2
   exit 1
 fi
+# 途中で接続が切れた（シグナル）ときも、札と作業フォルダを片付ける
 trap 'rm -rf "$LOCK" "$NEW" "$OLD"' EXIT
+trap 'exit 1' HUP INT TERM PIPE
 mkdir "$NEW" "$OLD"
 
 # 1) 受け取る（bsdtar は「..」や絶対パスの入ったファイルを展開しない）
