@@ -2,7 +2,8 @@
 
 Sanity + Astro + Cloudflare Workers で構築したポートフォリオサイト。
 
-**本番URL**: https://my-portfolio.hanada87.workers.dev  
+**本番URL**: https://hanada87.com/ （さくらのレンタルサーバ。2026-11-09〜）  
+**予備URL**: https://my-portfolio.hanada87.workers.dev （Cloudflare Workers。同じ内容）  
 **CMS管理画面**: https://tsubaki87-portfolio.sanity.studio/
 
 ---
@@ -134,6 +135,26 @@ Cloudflare が自動ビルド＆デプロイ（2〜3分）
 本番サイトに反映
 ```
 
+### hanada87.com（さくらのレンタルサーバ）への自動アップロード
+
+2026-11-09 から、同じ内容を **https://hanada87.com/** にも置いています（GitHub Actions `.github/workflows/deploy-sakura.yml`）。
+
+```
+main に push ／ Sanity で公開（Webhook → GitHub の repository_dispatch「sanity-publish」）／ Actions 画面から手動
+        ↓ GitHub Actions がビルド（npm ci → npm run build）
+dist/client を tar.gz にして SSH で送る
+        ↓ さくら側の ~/bin/deploy-portfolio.sh（このリポジトリの deploy/sakura/ と同じもの）が受け取る
+~/www/hanada87/ のポートフォリオのファイルだけを置き換える
+```
+
+- **同じ場所に 87website・persona・boat_race・w_accounting02 などのサイトがある。** スクリプトが置き換えるのは `index.html`・`about`・`projects`・`_astro`・favicon・`og-default.png` だけ。知らない名前が届いたら何も置かずに止まる
+- **新しいページ（例: `src/pages/contact.astro`）を足したとき**は、さくらの `~/bin/deploy-portfolio.sh` の `ITEMS` にも名前を足す（足さないと Actions が「知らない名前」で失敗する）。`deploy/sakura/deploy-portfolio.sh` も同じに直して commit する
+- 直前の版はさくらの `~/portfolio-deploy/prev/` に控えてある（戻すときは、その中身を `~/www/hanada87/` に写す）
+- 送るための SSH 鍵は GitHub の Secret `SAKURA_DEPLOY_KEY`（さくら側で `deploy-portfolio.sh` しか動かせない制限付き。`authorized_keys` の `restrict,command=...`）。さくらのサーバーの公開鍵は Variable `SAKURA_KNOWN_HOSTS`
+- Sanity の Webhook「GitHub Actions (hanada87.com)」は GitHub のトークン（fine-grained、`03_my-portfolio` の Contents: Read and write のみ）を使う。**トークンの期限は 2027-11-09**。期限前に作り直して、Sanity の Webhook の `Authorization: Bearer …` を差し替える
+- Cloudflare 用の Webhook・Workers Builds はそのまま（workers.dev も今まで通り更新される）
+- 結果は GitHub の Actions タブ「Deploy to sakura (hanada87.com)」で見られる
+
 ---
 
 ## 今後の予定
@@ -143,7 +164,7 @@ Cloudflare が自動ビルド＆デプロイ（2〜3分）
 - [x] Sanity Webhook による自動再デプロイ
 - [x] git push による自動デプロイ（Cloudflare Workers Builds）
 - [x] OGP / Twitter Card メタタグ対応（※現在 noindex 設定中。コンテンツ整備後に解除）
-- [ ] カスタムドメイン設定（新規ドメイン取得時）
+- [x] hanada87.com で公開（さくらへ自動アップロード、2026-11-09）
 - [ ] 制作実績にリッチテキスト（Portable Text）対応
 
 ---

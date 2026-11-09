@@ -1,0 +1,79 @@
+# ポートフォリオをビルドして、さくら（https://hanada87.com/）に置く
+#
+# 動くとき:
+#   - main に push したとき
+#   - Sanity で公開したとき（Sanity の Webhook → repository_dispatch「sanity-publish」）
+#   - GitHub の Actions 画面から手で動かしたとき
+#
+# 使う設定（GitHub のリポジトリ → Settings → Secrets and variables → Actions）:
+#   - Secret   SAKURA_DEPLOY_KEY   … さくらへ送る専用の SSH 秘密鍵
+#                                    （さくら側で deploy-portfolio.sh しか動かせない鍵）
+#   - Variable SAKURA_KNOWN_HOSTS  … さくらのサーバーの公開鍵（なりすまし防止）
+#
+# workers.dev（Cloudflare）への反映は、これまで通り Cloudflare 側の仕組みが行う。
+name: Deploy to sakura (hanada87.com)
+
+on:
+  push:
+    branches: [main]
+  repository_dispatch:
+    types: [sanity-publish]
+  workflow_dispatch:
+
+# 続けて何回動いても、1 つずつ順番に置く
+concurrency:
+  group: deploy-sakura
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Check build output
+        run: |
+          test -f dist/client/index.html
+          test -d dist/client/_astro
+          test -d dist/client/projects
+
+      # 鍵の設定がまだのときは、ビルドの確認だけで終わる
+      - name: Upload to sakura
+        if: ${{ vars.SAKURA_KNOWN_HOSTS != '' }}
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ vars.SAKURA_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          tar -C dist/client --exclude=./wrangler.json --exclude=./.assetsignore -czf - . \
+            | ssh -i ~/.ssh/deploy_key \
+                  -o IdentitiesOnly=yes \
+                  -o StrictHostKeyChecking=yes \
+                  -o BatchMode=yes \
+                  hanada87@hanada87.sakura.ne.jp deploy
+
+      - name: Check hanada87.com
+        if: ${{ vars.SAKURA_KNOWN_HOSTS != '' }}
+        run: |
+          sleep 3
+          curl -fsS -o /dev/null -w '%{http_code} /\n' https://hanada87.com/
+          curl -fsS -o /dev/null -w '%{http_code} /about/\n' https://hanada87.com/about/
+          curl -fsS -o /dev/null -w '%{http_code} /projects/\n' https://hanada87.com/projects/
